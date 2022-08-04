@@ -12,7 +12,14 @@ def main():
     message = get_message()
     url = message.get("url")
 
-    args = ["mpv", "--no-terminal", "--", url]
+    args = []
+
+    if ".torrent" in url or "magnet:" in url or "webtorrent://" in url or "peerflix://" in url:
+        args = ["webtorrent", "--quiet", "--mpv", url]
+        if platform.system() == "Windows":
+            args = ["cmd", "/c"] + args
+    else:
+        args = ["mpv", "--no-terminal", "--", url]
 
     kwargs = {}
     # https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging#Closing_the_native_app
@@ -44,6 +51,10 @@ def get_message():
         return {}
     length = struct.unpack("@I", raw_length)[0]
     message = sys.stdin.buffer.read(length).decode("utf-8")
+
+    with open("pylog.txt", "a+") as log:
+        log.write(message + "\n")
+
     return json.loads(message)
 
 
