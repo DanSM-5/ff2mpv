@@ -14,7 +14,12 @@ def main():
 
     args = []
 
-    if ".torrent" in url or "magnet:" in url or "webtorrent://" in url or "peerflix://" in url:
+    if (
+            ".torrent" in url
+            or "magnet:" in url
+            or "webtorrent://" in url
+            or "peerflix://" in url
+    ):
         args = ["webtorrent", "--quiet", "--mpv", url]
         if platform.system() == "Windows":
             args = ["cmd", "/c"] + args
