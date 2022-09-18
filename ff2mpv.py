@@ -49,6 +49,7 @@ def main():
     # in Browser Console.
     send_message("ok")
 
+
 # https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Native_messaging#App_side
 def get_message():
     raw_length = sys.stdin.buffer.read(4)
@@ -61,6 +62,7 @@ def get_message():
         log.write(message + "\n")
 
     return json.loads(message)
+
 
 def send_message(message):
     content = json.dumps(message).encode("utf-8")
