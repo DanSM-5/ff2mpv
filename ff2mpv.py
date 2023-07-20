@@ -20,8 +20,7 @@ def main():
         or "webtorrent://" in url
         or "peerflix://" in url
     ):
-        # args = ["webtorrent", "--quiet", "--mpv", url]
-        args = ["webtorrent", "--upload-limit", "1", "--quiet", "--mpv", url]
+        args = ["webtorrent", "--quiet", "--mpv", url]
         if platform.system() == "Windows":
             args = ["cmd", "/c"] + args
     else:
