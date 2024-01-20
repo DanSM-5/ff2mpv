@@ -1,22 +1,30 @@
 const contexts = ["link", "image", "video", "audio", "selection", "frame"];
+const CREATE_PROFILE = 'createProfile';
+const UPDATE_PROFILE = 'updateProfile';
+const DELETE_PROFILE = 'deleteProfile';
 
 function onError(error) {
   console.log(`${error}`);
 }
 
-function ff2mpv(url, options = []) {
-  browser.tabs.executeScript({
-    code: "video = document.getElementsByTagName('video');video[0].pause();"
+function ff2mpv(url, tabId, options = []) {
+  chrome.scripting.executeScript({
+    target: { tabId: tabId, allFrames: true },
+    func: () => {
+      document.querySelectorAll("video").forEach((video) => video.pause());
+    },
   });
-  browser.runtime.sendNativeMessage("ff2mpv", { url, options }).catch(onError);
+  chrome.runtime
+    .sendNativeMessage("ff2mpv", { url, options })
+    .catch(onError);
 }
 
 async function getOS() {
-  return browser.runtime.getPlatformInfo().then((i) => i.os);
+  return chrome.runtime.getPlatformInfo().then((i) => i.os);
 }
 
 async function getProfiles() {
-  return (await browser.storage.sync.get('profiles'))['profiles'] || [];
+  return (await chrome.storage.sync.get('profiles'))['profiles'] || [];
 };
 
 async function getOptions(id) {
@@ -29,7 +37,7 @@ async function getOptions(id) {
     : [];
 }
 
-async function submenuClicked(info) {
+async function submenuClicked(info, tab) {
   switch (info.parentMenuItemId) {
     case "ff2mpv":
       /* These should be mutually exclusive, but,
@@ -38,62 +46,73 @@ async function submenuClicked(info) {
       url = info.linkUrl || info.srcUrl || info.selectionText || info.frameUrl;
       if (url) {
         const options = await getOptions(info.menuItemId);
-        ff2mpv(url, options);
+        ff2mpv(url, tab.id, options);
       }
     break;
   }
 }
 
 function createProfile(profile) {
-  browser.contextMenus.create({
+  chrome.contextMenus.create({
     parentId: "ff2mpv",
     id: profile.id,
     title: profile.name,
     contexts,
-    onclick: submenuClicked,
   })
 }
 
 function deleteProfile(menuItemId) {
-  browser.contextMenus.remove(menuItemId);
+  chrome.contextMenus.remove(menuItemId);
 }
 
 function updateProfile(profile) {
-  browser.contextMenus.update(profile.id, {
+  chrome.contextMenus.update(profile.id, {
     title: profile.name,
   });
 }
 
-getOS().then(async (os) => {
-  var title = os == "win" ? "Play in MP&V" : "Play in MPV (&W)";
-
-  browser.contextMenus.create({
+chrome.runtime.onInstalled.addListener(async (_) => {
+  // TODO: Should we have os detection?
+  // var title = os == "win" ? "Play in MP&V" : "Play in MPV (&W)";
+  chrome.contextMenus.create({
     id: "ff2mpv",
-    title: "Profiles",
+    title: "Play in MPV",
     contexts,
-  });
-
-  // Default entry
-  browser.contextMenus.create({
-    parentId: "ff2mpv",
-    title,
-    contexts,
-    onclick: submenuClicked,
   });
 
   const profiles = await getProfiles();
 
   profiles.forEach(profile => {
-    browser.contextMenus.create({
-      parentId: "ff2mpv",
-      id: profile.id,
-      title: profile.name,
-      contexts,
-      onclick: submenuClicked,
-    })
+    createProfile(profile);
   });
+});
 
-  browser.browserAction.onClicked.addListener((tab) => {
-    ff2mpv(tab.url);
-  });
+chrome.runtime.onClicked.addListener(submenuClicked);
+
+chrome.action.onClicked.addListener((tab) => {
+  ff2mpv(tab.url, tab.id);
+});
+
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  if (!request) {
+    console.wanr('No request in message');
+    return;
+  }
+
+  const { type, profile } = request;
+
+  switch (type) {
+    case CREATE_PROFILE:
+      createProfile(profile);
+      break;
+    case UPDATE_PROFILE:
+      updateProfile(profile);
+      break;
+    case DELETE_PROFILE:
+      deleteProfile(profile.id);
+      break;
+    default:
+      console.warn('No handler for type:', type);
+      return;
+  }
 });
