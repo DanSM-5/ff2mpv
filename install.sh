@@ -105,7 +105,7 @@ OLD_PATH="/home/william/scripts/ff2mpv"
 if [[ -d "$BROWSER_DEST" ]]; then
   mkdir -p "$JSON_DEST"
   # Replace the placeholder path in the JSON file and install it
-  sed -e "s|$OLD_PATH|$CURRENT_DIR/ff2mpv.py|g" "$JSON_FILE" >"$JSON_DEST"/ff2mpv.json
+  sed -e "s|$OLD_PATH|$CURRENT_DIR/ff2mpv.sh|g" "$JSON_FILE" >"$JSON_DEST"/ff2mpv.json
 else
   echo "Please start your browser at least once to generate the required directories"
   exit 1
